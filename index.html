@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>বাংলা স্মার্ট ক্যালকুলেটর</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+  :root {
+    --emerald: #10b981; --emerald-light: #34d399; --teal: #14b8a6;
+    --rose: #fb7185; --amber: #fbbf24; --muted: #94a3b8; --text: #f8fafc;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'Nirmala UI', 'Kohinoor Bangla', system-ui, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    padding: 10px; min-height: 100vh; min-height: 100dvh;
+    user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  }
+  .hidden { display: none !important; }
+
+  .app {
+    width: 100%; max-width: 420px; position: relative; overflow: hidden;
+    background: rgba(15, 23, 42, 0.94); border: 1px solid rgba(51, 65, 85, 0.7);
+    border-radius: 26px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+    display: flex; flex-direction: column;
+  }
+
+  /* হেডার */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-bottom: 1px solid #1e293b; gap: 8px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .brand-icon {
+    width: 34px; height: 34px; border-radius: 11px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--emerald), var(--teal));
+    display: flex; align-items: center; justify-content: center; color: #0f172a;
+  }
+  .brand-title { font-size: 15px; font-weight: 700; white-space: nowrap; }
+  .brand-sub { font-size: 11px; color: var(--emerald-light); }
+  .header-actions { display: flex; align-items: center; gap: 6px; }
+  .icon-btn {
+    position: relative; width: 34px; height: 34px; border-radius: 10px; border: none;
+    background: #1e293b; color: #cbd5e1; font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .icon-btn:active { transform: scale(0.92); }
+  .badge-dot {
+    position: absolute; top: -2px; right: -2px; width: 9px; height: 9px;
+    background: var(--emerald); border-radius: 50%; border: 2px solid #0f172a;
+  }
+  .save-btn {
+    display: flex; align-items: center; gap: 4px; padding: 7px 11px; border: none;
+    border-radius: 10px; background: #059669; color: #fff; font: inherit;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+
+  /* ডিসপ্লে */
+  .display {
+    position: relative; min-height: 148px; padding: 18px 20px 16px;
+    background: rgba(2, 6, 23, 0.65); display: flex; flex-direction: column;
+    justify-content: flex-end; align-items: flex-end;
+  }
+  .top-controls { position: absolute; top: 12px; left: 14px; display: flex; gap: 6px; }
+  .pill {
+    font: inherit; font-size: 11px; font-weight: 600; color: var(--muted);
+    background: rgba(30, 41, 59, 0.75); border: 1px solid rgba(71, 85, 105, 0.4);
+    padding: 4px 9px; border-radius: 8px; cursor: pointer;
+  }
+  .pill:hover { color: var(--emerald-light); border-color: rgba(16, 185, 129, 0.4); }
+  .pill.active { background: rgba(16, 185, 129, 0.18); color: var(--emerald-light); }
+  .prev { color: var(--muted); font-size: 16px; min-height: 24px; margin-top: 22px; text-align: right; word-break: break-all; }
+  .cur { font-size: 38px; font-weight: 700; line-height: 1.15; margin-top: 4px; text-align: right; word-break: break-all; }
+  .cur.error { color: var(--rose); font-size: 21px; }
+  .words { font-size: 12px; color: rgba(52, 211, 153, 0.92); margin-top: 8px; min-height: 18px; text-align: right; }
+
+  /* সায়েন্টিফিক বার */
+  .sci-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 10px 16px 0; }
+  .sci-btn {
+    padding: 9px 4px; border-radius: 12px; border: 1px solid rgba(51, 65, 85, 0.6);
+    background: rgba(30, 41, 59, 0.7); color: #cbd5e1; font: inherit; font-size: 15px;
+    font-weight: 600; cursor: pointer;
+  }
+  .sci-btn:active { transform: scale(0.92); }
+
+  /* কিপ্যাড */
+  .keypad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 14px 16px 18px; }
+  .key {
+    padding: 14px 6px; border-radius: 16px; border: none; background: rgba(30, 41, 59, 0.92);
+    color: #fff; font: inherit; font-size: 23px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.25);
+  }
+  .key:active { transform: scale(0.92); }
+  .key-ac { grid-column: span 2; background: rgba(244, 63, 94, 0.18); color: var(--rose); font-size: 18px; }
+  .key-del { color: var(--amber); }
+  .key-op { background: rgba(16, 185, 129, 0.16); color: var(--emerald-light); font-size: 25px; }
+  .key-pct { color: var(--emerald-light); font-size: 20px; }
+  .key-eq { background: linear-gradient(135deg, var(--emerald), var(--teal)); color: #020617; font-size: 26px; }
+
+  /* ওভারলে প্যানেল */
+  .panel {
+    position: absolute; inset: 0; z-index: 25; background: rgba(15, 23, 42, 0.98);
+    padding: 18px; display: flex; flex-direction: column; overflow-y: auto;
+  }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid #1e293b; padding-bottom: 12px; margin-bottom: 14px;
+  }
+  .panel-title { font-size: 17px; font-weight: 700; color: var(--emerald-light); }
+  .panel-actions { display: flex; gap: 8px; align-items: center; }
+  .btn-small {
+    font: inherit; font-size: 12px; font-weight: 600; border: none; padding: 6px 10px;
+    border-radius: 8px; cursor: pointer; background: rgba(244, 63, 94, 0.18); color: var(--rose);
+  }
+  .btn-close {
+    width: 32px; height: 32px; border-radius: 8px; border: none; background: #1e293b;
+    color: #cbd5e1; cursor: pointer; font-size: 14px;
+  }
+  .history-item {
+    display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+    padding: 12px 14px; margin-bottom: 10px; border-radius: 14px;
+    background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(51, 65, 85, 0.55);
+  }
+  .h-expr { font-size: 12px; color: var(--muted); }
+  .h-res { font-size: 18px; font-weight: 700; color: var(--emerald-light); }
+  .empty { text-align: center; color: #64748b; font-size: 14px; margin-top: 40px; }
+
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px; }
+  .field input {
+    width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid #334155;
+    background: #020617; color: #fff; font: inherit; font-size: 17px; font-weight: 600; outline: none;
+  }
+  .field input:focus { border-color: var(--emerald); }
+  .chips { display: flex; gap: 6px; margin-top: 6px; }
+  .chip {
+    flex: 1; padding: 5px; border-radius: 8px; border: 1px solid #334155; background: #1e293b;
+    color: #cbd5e1; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .summary {
+    background: rgba(2, 6, 23, 0.75); border: 1px solid #334155; border-radius: 14px;
+    padding: 14px; display: flex; flex-direction: column; gap: 8px; margin-top: 4px;
+  }
+  .sum-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+  .sum-total {
+    display: flex; justify-content: space-between; border-top: 1px solid #1e293b;
+    padding-top: 8px; font-size: 16px; font-weight: 700; color: var(--emerald-light);
+  }
+  .sum-words { font-size: 12px; color: var(--muted); text-align: right; }
+  .btn-row { display: flex; gap: 8px; margin-top: auto; padding-top: 12px; }
+  .btn { flex: 1; padding: 11px; border-radius: 12px; border: none; font: inherit; font-size: 13px; font-weight: 600; color: #fff; cursor: pointer; }
+  .btn-grey { background: #334155; }
+  .btn-green { background: #059669; }
+
+  .guide { background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(51, 65, 85, 0.6); border-radius: 14px; padding: 12px; font-size: 13px; line-height: 1.6; margin: 14px 0; }
+  .guide p + p { margin-top: 10px; border-top: 1px solid #1e293b; padding-top: 10px; }
+  .tag { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; margin-right: 6px; }
+  .tag-a { background: rgba(16, 185, 129, 0.2); color: var(--emerald-light); }
+  .tag-i { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+
+  @media (max-width: 380px) {
+    .cur { font-size: 32px; }
+    .key { font-size: 20px; padding: 12px 4px; }
+    .brand-sub { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- হেডার -->
+  <div class="header">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/>
+          <path d="M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="brand-title">বাংলা ক্যালকুলেটর</h1>
+        <p class="brand-sub">স্মার্ট ও ১০০% অফলাইন</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="sound-btn" class="icon-btn" onclick="toggleSound()" title="ক্লিক সাউন্ড">🔊</button>
+      <button class="icon-btn" onclick="toggle('history-panel')" title="ইতিহাস">
+        🕘<span id="badge" class="badge-dot hidden"></span>
+      </button>
+      <button class="save-btn" onclick="toggle('install-modal')">⬇ সেভ</button>
+    </div>
+  </div>
+
+  <!-- ডিসপ্লে -->
+  <div class="display">
+    <div class="top-controls">
+      <button class="pill" onclick="copyResult()"><span id="copy-text">কপি</span></button>
+      <button class="pill" id="sci-toggle" onclick="toggleSci()">fx সায়েন্টিফিক</button>
+      <button class="pill" onclick="toggle('vat-panel')">৳% ভ্যাট/ছাড়</button>
+    </div>
+    <div id="prev" class="prev"></div>
+    <div id="cur" class="cur">০</div>
+    <div id="words" class="words"></div>
+  </div>
+
+  <!-- সায়েন্টিফিক বার -->
+  <div id="sci-bar" class="sci-bar hidden">
+    <button class="sci-btn" onclick="toggleSign()">±</button>
+    <button class="sci-btn" onclick="sci('sqrt')">√</button>
+    <button class="sci-btn" onclick="sci('sq')">x²</button>
+    <button class="sci-btn" onclick="sci('inv')">১/x</button>
+    <button class="sci-btn" onclick="insertPi()">π</button>
+  </div>
+
+  <!-- কিপ্যাড -->
+  <div class="keypad">
+    <button class="key key-ac" onclick="clearAll()">মুছুন (AC)</button>
+    <button class="key key-del" onclick="del()">⌫</button>
+    <button class="key key-op" onclick="chooseOp('÷')">÷</button>
+
+    <button class="key" onclick="inputDigit('৭')">৭</button>
+    <button class="key" onclick="inputDigit('৮')">৮</button>
+    <button class="key" onclick="inputDigit('৯')">৯</button>
+    <button class="key key-op" onclick="chooseOp('×')">×</button>
+
+    <button class="key" onclick="inputDigit('৪')">৪</button>
+    <button class="key" onclick="inputDigit('৫')">৫</button>
+    <button class="key" onclick="inputDigit('৬')">৬</button>
+    <button class="key key-op" onclick="chooseOp('−')">−</button>
+
+    <button class="key" onclick="inputDigit('১')">১</button>
+    <button class="key" onclick="inputDigit('২')">২</button>
+    <button class="key" onclick="inputDigit('৩')">৩</button>
+    <button class="key key-op" onclick="chooseOp('+')">+</button>
+
+    <button class="key key-pct" onclick="percent()">%</button>
+    <button class="key" onclick="inputDigit('০')">০</button>
+    <button class="key" onclick="inputDigit('.')">.</button>
+    <button class="key key-eq" onclick="compute()">=</button>
+  </div>
+
+  <!-- ইতিহাস প্যানেল -->
+  <div id="history-panel" class="panel hidden">
+    <div class="panel-head">
+      <h2 class="panel-title">পূর্ববর্তী হিসাব</h2>
+      <div class="panel-actions">
+        <button class="btn-small" onclick="clearHistory()">সব মুছুন</button>
+        <button class="btn-close" onclick="closeAll()">✕</button>
+      </div>
+    </div>
+    <div id="history-list"></div>
+  </div>
+
+  <!-- ভ্যাট ও ছাড় প্যানেল -->
+  <div id="vat-panel" class="panel hidden">
+    <div class="panel-head">
+      <h2 class="panel-title">ভ্যাট ও ছাড় হিসাব</h2>
+      <button class="btn-close" onclick="closeAll()">✕</button>
+    </div>
+
+    <div class="field">
+      <label for="vat-price">মূল দাম (টাকা)</label>
+      <input id="vat-price" type="text" inputmode="decimal" placeholder="যেমন: ১০০০" oninput="calcVat()">
+    </div>
+
+    <div class="field">
+      <label for="vat-discount">ছাড় (%)</label>
+      <input id="vat-discount" type="text" inputmode="decimal" placeholder="০" oninput="calcVat()">
+      <div class="chips">
+        <button class="chip" onclick="setPreset('vat-discount', 5)">৫%</button>
+        <button class="chip" onclick="setPreset('vat-discount', 10)">১০%</button>
+        <button class="chip" onclick="setPreset('vat-discount', 15)">১৫%</button>
+        <button class="chip" onclick="setPreset('vat-discount', 20)">২০%</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="vat-tax">ভ্যাট / ট্যাক্স (%)</label>
+      <input id="vat-tax" type="text" inputmode="decimal" placeholder="০" oninput="calcVat()">
+      <div class="chips">
+        <button class="chip" onclick="setPreset('vat-tax', 0)">০%</button>
+        <button class="chip" onclick="setPreset('vat-tax', 5)">৫%</button>
+        <button class="chip" onclick="setPreset('vat-tax', 7.5)">৭.৫%</button>
+        <button class="chip" onclick="setPreset('vat-tax', 15)">১৫%</button>
+      </div>
+    </div>
+
+    <div class="summary">
+      <div class="sum-row"><span>ছাড়ের পরিমাণ</span><span id="disc-amt">০ ৳</span></div>
+      <div class="sum-row"><span>ভ্যাটের পরিমাণ</span><span id="tax-amt">০ ৳</span></div>
+      <div class="sum-total"><span>সর্বমোট</span><span id="total-amt">০ ৳</span></div>
+      <div id="total-words" class="sum-words"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-grey" onclick="resetVat()">রিসেট</button>
+      <button class="btn btn-green" onclick="applyVat()">ক্যালকুলেটরে নিন</button>
+    </div>
+  </div>
+
+  <!-- সেভ/ইনস্টল গাইড -->
+  <div id="install-modal" class="panel hidden">
+    <div class="panel-head">
+      <h2 class="panel-title">অ্যাপ হিসেবে ইনস্টল</h2>
+      <button class="btn-close" onclick="closeAll()">✕</button>
+    </div>
+    <p style="font-size:13px; color:#cbd5e1; line-height:1.5;">
+      হোম স্ক্রিনে রাখতে বা ইন্টারনেট ছাড়া ব্যবহার করতে নিচের ধাপ অনুসরণ করুন:
+    </p>
+    <div class="guide">
+      <p><span class="tag tag-a">Android</span>ব্রাউজারের ⋮ মেনু থেকে <b>"Add to Home screen"</b> বা <b>"Install app"</b> চাপুন।</p>
+      <p><span class="tag tag-i">iPhone</span>Share বাটন থেকে <b>"Add to Home Screen"</b> বেছে নিন।</p>
+    </div>
+    <div class="btn-row" style="margin-top:0;">
+      <button class="btn btn-grey" onclick="downloadHTML()">ফাইল সেভ (.html)</button>
+      <button class="btn btn-green" onclick="closeAll()">ঠিক আছে</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const BN = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+  const ERR = 'ত্রুটি';
+  const toBn = s => String(s).replace(/[0-9]/g, d => BN[d]);
+  const toEn = s => String(s).replace(/[০-৯]/g, d => String(BN.indexOf(d)));
+  const $ = id => document.getElementById(id);
+
+  let cur = '0', prev = '', op = null, fresh = false, lastTotal = 0;
+  let soundOn = localStorage.getItem('bn_calc_sound') !== 'false';
+  let history = [];
+  try { history = JSON.parse(localStorage.getItem('bn_calc_history')) || []; } catch (e) { history = []; }
+
+  // ---------- শব্দ ----------
+  let audioCtx = null;
+  function playClick() {
+    if (!soundOn) return;
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.frequency.setValueAtTime(520, audioCtx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.03);
+      g.gain.setValueAtTime(0.04, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime + 0.03);
+    } catch (e) {}
+  }
+  function toggleSound() {
+    soundOn = !soundOn;
+    localStorage.setItem('bn_calc_sound', soundOn);
+    $('sound-btn').textContent = soundOn ? '🔊' : '🔇';
+    if (soundOn) playClick();
+  }
+
+  // ---------- সহায়ক ----------
+  function fmtNum(n) {
+    if (!isFinite(n)) return ERR;
+    return String(parseFloat(n.toPrecision(12)));
+  }
+  function groupIndian(s) {
+    let neg = s.startsWith('-'); if (neg) s = s.slice(1);
+    let [i, f] = s.split('.');
+    if (i.length > 3) i = i.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + i.slice(-3);
+    return (neg ? '-' : '') + i + (f !== undefined ? '.' + f : '');
+  }
+  function calc(a, o, b) {
+    const x = parseFloat(a), y = parseFloat(b);
+    let r;
+    switch (o) {
+      case '+': r = x + y; break;
+      case '−': r = x - y; break;
+      case '×': r = x * y; break;
+      case '÷': if (y === 0) return ERR; r = x / y; break;
+    }
+    return fmtNum(r);
+  }
+  function showError() { cur = ERR; prev = ''; op = null; fresh = true; render(); }
+
+  // ---------- রেন্ডার ----------
+  function render() {
+    const el = $('cur');
+    el.textContent = cur === ERR ? ERR : toBn(cur);
+    el.classList.toggle('error', cur === ERR);
+    $('prev').textContent = op ? toBn(prev) + ' ' + op : '';
+    const isNum = cur !== ERR && !isNaN(parseFloat(cur)) && cur.replace(/[-.]/g, '').length > 3;
+    $('words').textContent = isNum ? '= ' + toBn(groupIndian(cur)) : '';
+  }
+
+  // ---------- ইনপুট ----------
+  function inputDigit(ch) {
+    playClick();
+    const d = toEn(ch);
+    if (fresh) { cur = '0'; fresh = false; }
+    if (d === '.') {
+      if (cur.includes('.')) return;
+      cur += '.';
+    } else {
+      if (cur.replace(/[-.]/g, '').length >= 15) return;
+      cur = cur === '0' ? d : cur + d;
+    }
+    render();
+  }
+
+  function chooseOp(sym) {
+    playClick();
+    if (cur === ERR) return;
+    if (op !== null && !fresh) {       // চেইন হিসাব: 2+3+4
+      const r = calc(prev, op, cur);
+      if (r === ERR) return showError();
+      cur = r;
+    }
+    prev = cur; op = sym; fresh = true;
+    render();
+  }
+
+  function compute() {
+    playClick();
+    if (op === null) return;
+    const expr = prev + ' ' + op + ' ' + cur;
+    const r = calc(prev, op, cur);
+    if (r === ERR) return showError();
+    addHistory(expr + ' =', r);
+    cur = r; prev = ''; op = null; fresh = true;
+    render();
+  }
+
+  function clearAll() { playClick(); cur = '0'; prev = ''; op = null; fresh = false; render(); }
+
+  function del() {
+    playClick();
+    if (fresh || cur === ERR) return;
+    cur = cur.length > 1 ? cur.slice(0, -1) : '0';
+    if (cur === '-') cur = '0';
+    render();
+  }
+
+  function percent() {
+    playClick();
+    if (cur === ERR) return;
+    cur = fmtNum(parseFloat(cur) / 100);
+    render();
+  }
+
+  function toggleSign() {
+    playClick();
+    if (cur === ERR || cur === '0') return;
+    cur = cur.startsWith('-') ? cur.slice(1) : '-' + cur;
+    render();
+  }
+
+  function sci(t) {
+    playClick();
+    if (cur === ERR) return;
+    const x = parseFloat(cur); let r;
+    if (t === 'sqrt') { if (x < 0) return showError(); r = Math.sqrt(x); }
+    else if (t === 'sq') r = x * x;
+    else if (t === 'inv') { if (x === 0) return showError(); r = 1 / x; }
+    cur = fmtNum(r); fresh = true; render();
+  }
+
+  function insertPi() { playClick(); cur = fmtNum(Math.PI); fresh = true; render(); }
+
+  function toggleSci() {
+    const bar = $('sci-bar');
+    bar.classList.toggle('hidden');
+    $('sci-toggle').classList.toggle('active', !bar.classList.contains('hidden'));
+  }
+
+  // ---------- ইতিহাস ----------
+  function addHistory(e, r) {
+    history.unshift({ e, r });
+    history = history.slice(0, 50);
+    localStorage.setItem('bn_calc_history', JSON.stringify(history));
+    renderHistory();
+  }
+  function renderHistory() {
+    const list = $('history-list');
+    $('badge').classList.toggle('hidden', history.length === 0);
+    list.innerHTML = '';
+    if (!history.length) { list.innerHTML = '<p class="empty">এখনো কোনো হিসাব করা হয়নি</p>'; return; }
+    history.forEach(h => {
+      const div = document.createElement('div');
+      div.className = 'history-item';
+      div.innerHTML = `<span class="h-expr">${toBn(h.e)}</span><span class="h-res">${toBn(h.r)}</span>`;
+      div.onclick = () => { cur = h.r; prev = ''; op = null; fresh = true; closeAll(); render(); };
+      list.appendChild(div);
+    });
+  }
+  function clearHistory() {
+    history = []; localStorage.removeItem('bn_calc_history'); renderHistory();
+  }
+
+  // ---------- কপি ----------
+  async function copyResult() {
+    try {
+      await navigator.clipboard.writeText(toBn(cur));
+      $('copy-text').textContent = 'কপি হয়েছে ✓';
+    } catch (e) {
+      $('copy-text').textContent = 'ব্যর্থ';
+    }
+    setTimeout(() => $('copy-text').textContent = 'কপি', 1500);
+  }
+
+  // ---------- প্যানেল ----------
+  const PANELS = ['history-panel', 'vat-panel', 'install-modal'];
+  function closeAll() { PANELS.forEach(id => $(id).classList.add('hidden')); }
+  function toggle(id) {
+    const el = $(id);
+    const wasHidden = el.classList.contains('hidden');
+    closeAll();
+    if (wasHidden) el.classList.remove('hidden');
+    if (id === 'history-panel') renderHistory();
+  }
+
+  // ---------- ভ্যাট ও ছাড় ----------
+  const num = id => parseFloat(toEn($(id).value)) || 0;
+  const r2 = x => Math.round(x * 100) / 100;
+  function calcVat() {
+    const p = num('vat-price'), d = num('vat-discount'), t = num('vat-tax');
+    const disc = p * d / 100, after = p - disc, tax = after * t / 100;
+    lastTotal = r2(after + tax);
+    $('disc-amt').textContent = toBn(r2(disc)) + ' ৳';
+    $('tax-amt').textContent = toBn(r2(tax)) + ' ৳';
+    $('total-amt').textContent = toBn(lastTotal) + ' ৳';
+    $('total-words').textContent = toBn(groupIndian(String(lastTotal))) + ' টাকা';
+  }
+  function setPreset(id, v) { $(id).value = toBn(v); calcVat(); }
+  function resetVat() {
+    ['vat-price', 'vat-discount', 'vat-tax'].forEach(id => $(id).value = '');
+    calcVat();
+  }
+  function applyVat() {
+    cur = fmtNum(lastTotal); prev = ''; op = null; fresh = true;
+    closeAll(); render();
+  }
+
+  // ---------- ডাউনলোড ----------
+  function downloadHTML() {
+    const blob = new Blob(['<!DOCTYPE html>\n' + document.documentElement.outerHTML], { type: 'text/html' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'bangla-calculator.html';
+    a.click();
+  }
+
+  // ---------- কীবোর্ড ----------
+  document.addEventListener('keydown', e => {
+    if (/^[0-9]$/.test(e.key)) inputDigit(BN[+e.key]);
+    else if (e.key === '.') inputDigit('.');
+    else if (e.key === '+') chooseOp('+');
+    else if (e.key === '-') chooseOp('−');
+    else if (e.key === '*') chooseOp('×');
+    else if (e.key === '/') { e.preventDefault(); chooseOp('÷'); }
+    else if (e.key === 'Enter' || e.key === '=') { e.preventDefault(); compute(); }
+    else if (e.key === 'Backspace') del();
+    else if (e.key === 'Escape') closeAll();
+  });
+
+  // ---------- শুরু ----------
+  $('sound-btn').textContent = soundOn ? '🔊' : '🔇';
+  render();
+  renderHistory();
+</script>
+</body>
+</html>
